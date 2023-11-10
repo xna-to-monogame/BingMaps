@@ -26,7 +26,6 @@ namespace BingMapsSample
 
             _game = new BingMapsSampleGame();
             _view = _game.Services.GetService(typeof(View)) as View;
-
             SetContentView(_view);
             _game.Run();
         }

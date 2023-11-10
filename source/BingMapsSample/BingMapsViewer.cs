@@ -12,6 +12,7 @@
 #region Using Statements
 
 using System;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -83,10 +84,14 @@ internal class BingMapsViewer
 
         //  Initialize the tile set with the appripriate tile images
         _centerGeoCoordinate = location;
-        ActiveTiles.InitializeActiveTilePlane(location);
     }
 
     #endregion
+
+    public async Task Initialize()
+    {
+        await ActiveTiles.InitializeActiveTilePlane(_centerGeoCoordinate);
+    }
 
     #region Rendering
 
@@ -117,20 +122,26 @@ internal class BingMapsViewer
                     image = _defaultImage;
                 }
 
-                if(image.Name != "noImage")
+                if(image.Name == "noImage")
                 {
-                    ;
+                    //continue;
                 }
                 Rectangle dest;
+                dest.X = (int)(_screenCenterVector + _offset + extraOffset).X;
+                dest.Y = (int)(_screenCenterVector + _offset + extraOffset).Y;
+                dest.Width = BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice.Viewport.Width;
+                dest.Height = BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice.Viewport.Height;
+                //dest.X = 0;
+                //dest.Y = 0;
+                //dest.Width = 1080;
+                //dest.Height = 2340;
                 //dest.X = (int)(_screenCenterVector.X + _offset.X + extraOffset.X);
                 //dest.Y = (int)(_screenCenterVector.Y + _offset.Y + extraOffset.Y);
                 //dest.Width = BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice.Viewport.Width;
                 //dest.Height = BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice.Viewport.Height;
                 //spriteBatch.Draw(image, dest, null, Color.White, 0.0f, new Vector2(dest.Width, dest.Height) / 2, SpriteEffects.None, 0.0f);
-                Vector2 scale;
-                scale.X = BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice.Viewport.Width / image.Width;
-                scale.Y = BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice.Viewport.Height / image.Height;
-                spriteBatch.Draw(image, (_screenCenterVector + _offset + extraOffset) * scale, null, Color.White, 0, _tileDimensions / 2.0f, scale, SpriteEffects.None, 0.0f);
+                spriteBatch.Draw(image, dest , null, Color.White);
+                //spriteBatch.Draw(image, (_screenCenterVector + _offset + extraOffset) * scale, null, Color.White, 0, _tileDimensions / 2.0f, scale, SpriteEffects.None, 0.0f);
 
             }
         }

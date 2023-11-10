@@ -22,5 +22,7 @@ namespace BingMapsSample
             Longitude = longitude;
             Latitude = latitude;
         }
+
+        public override string ToString() => $"{Longitude},{Latitude}";
     }
 }

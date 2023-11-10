@@ -22,6 +22,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
 using BingMapsSample.ApiModels;
+using BingMapsSample.ApiModels.Imagery;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -46,32 +47,43 @@ public class BingApiService
         _httpClient = new HttpClient();
     }
 
-    public Texture2D GetImageFromServer(GeoCoordinate centerCoordinate, Vector2 tileDimensions, int zoomLevel, BingMapsViewType viewType)
+    public async Task<Texture2D?> GetImageFromServer(GeoCoordinate centerCoordinate, Vector2 tileDimensions, int zoomLevel, BingMapsViewType viewType)
     {
-        string endpoint = $"https://dev.virtualearth.net/REST/V1/Imagery/Map/{viewType}/{centerCoordinate.Latitude},{centerCoordinate.Longitude}/{zoomLevel}?mapSize={(int)tileDimensions.X},{(int)tileDimensions.Y}&key={_apiKey}";
+        Texture2D? result = null;
 
-        Stream stream = null;
-
-        try
+        StaticMapEndpoint endpoint = new StaticMapEndpoint(centerCoordinate, StaticMapEndpoint.ImagerySet.Aerial, zoomLevel, _apiKey);
+        HttpResponseMessage? response = await endpoint.GetResponse(_httpClient);
+        if(response != null && response.IsSuccessStatusCode)
         {
-            HttpResponseMessage message = _httpClient.GetAsync(endpoint).ConfigureAwait(false).GetAwaiter().GetResult();
-            stream = message.Content.ReadAsStream();
-            Texture2D texture = Texture2D.FromStream(BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice, stream);
-            return texture;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex.Message);
-            return null;
-        }
-        finally
-        {
-            if (stream != null)
-            {
-                stream.Dispose();
-            }
+            Texture2D texture = Texture2D.FromStream(BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice, response.Content.ReadAsStream());
 
         }
+
+        return result;
+        //string endpoint = $"https://dev.virtualearth.net/REST/V1/Imagery/Map/{viewType}/{centerCoordinate.Latitude},{centerCoordinate.Longitude}/{zoomLevel}?mapSize={(int)tileDimensions.X},{(int)tileDimensions.Y}&key={_apiKey}";
+
+        //Stream stream = null;
+
+        //try
+        //{
+        //    HttpResponseMessage message = _httpClient.GetAsync(endpoint).ConfigureAwait(false).GetAwaiter().GetResult();
+        //    stream = message.Content.ReadAsStream();
+        //    Texture2D texture = Texture2D.FromStream(BingMapsSampleGame.GraphicsDeviceManager.GraphicsDevice, stream);
+        //    return texture;
+        //}
+        //catch (Exception ex)
+        //{
+        //    Debug.WriteLine(ex.Message);
+        //    return null;
+        //}
+        //finally
+        //{
+        //    if (stream != null)
+        //    {
+        //        stream.Dispose();
+        //    }
+
+        //}
     }
 
     public LocationResultModel GetLocationModelAsync(string locationToFocusOn)

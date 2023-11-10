@@ -13,9 +13,6 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin apiKey.txt
-/copy:apiKey.txt
-
 #begin blank.png
 /importer:TextureImporter
 /processor:TextureProcessor

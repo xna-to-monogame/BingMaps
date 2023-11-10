@@ -168,7 +168,7 @@ public class BingMapsTiles : IDisposable
         }
     }
 
-    private void GetActivePlaneImagesAsync(GeoCoordinate centerCoordinate)
+    private async Task GetActivePlaneImagesAsync(GeoCoordinate centerCoordinate)
     {
         Vector2 centerPixel = TileSystem.GeoCoordinateToVector2(centerCoordinate, _zoomLevel);
 
@@ -206,7 +206,7 @@ public class BingMapsTiles : IDisposable
                 try
                 {
                     tileCenterGeoCoordiante = TileSystem.Vector2ToGeoCoordinate(tileCenter, _zoomLevel);
-                    Texture2D image= BingMapsSampleGame.BingApiService.GetImageFromServer(tileCenterGeoCoordiante,_tileDimensions, _zoomLevel, ViewType);
+                    Texture2D? image= await BingMapsSampleGame.BingApiService.GetImageFromServer(tileCenterGeoCoordiante,_tileDimensions, _zoomLevel, ViewType);
                     cellInformation.UnloadImage();
 
                     if (image != null)

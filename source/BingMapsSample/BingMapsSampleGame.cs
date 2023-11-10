@@ -15,6 +15,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using BingMapsSample.ApiModels;
@@ -37,6 +38,8 @@ public class BingMapsSampleGame : Game
     private readonly GeoCoordinate _startingCoordinate;
     private BingMapsViewer _bingMapsViewer;
     private Button _switchButton;
+
+    private bool _viewerInitialize = false;
 
     #endregion
 
@@ -74,15 +77,6 @@ public class BingMapsSampleGame : Game
 
         #endregion
 
-        //using (Stream stream = TitleContainer.OpenStream("Content/apikey.txt"))
-        //{
-        //    byte[] apikeyBytes = new byte[stream.Length];
-        //    for (int i = 0; i < apikeyBytes.Length; i++)
-        //    {
-        //        apikeyBytes[i] = (byte)stream.ReadByte();
-        //    }
-        //    apiKey = System.Text.Encoding.UTF8.GetString(apikeyBytes);
-        //}
 
         BingApiService = new BingApiService(apiKey);
 
@@ -107,14 +101,21 @@ public class BingMapsSampleGame : Game
 
         Texture2D defaultImage = Content.Load<Texture2D>("noImage");
         Texture2D unavailableImage = Content.Load<Texture2D>("noImage");
-        _bingMapsViewer = new BingMapsViewer(defaultImage, unavailableImage, _startingCoordinate, 1, 15);
+        _bingMapsViewer = new BingMapsViewer(defaultImage, unavailableImage, _startingCoordinate, 5, 3);
+
+        Thread initializeViewerThread = new Thread(async () =>
+        {
+            await _bingMapsViewer.Initialize();
+            _viewerInitialize = true;
+        });
+        initializeViewerThread.Start();
     }
 
     #endregion
 
     #region Update and Render
 
-    protected override async void Update(GameTime gameTime)
+    protected override void Update(GameTime gameTime)
     {
         // Allows the game to exit
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
@@ -122,49 +123,77 @@ public class BingMapsSampleGame : Game
             Exit();
         }
 
-        await HandleInput();
+        HandleInput();
 
         base.Update(gameTime);
     }
 
-    private async Task HandleInput()
+    private void HandleInput()
     {
         //  Read all gesture
-        while(TouchPanel.IsGestureAvailable)
+        while (TouchPanel.IsGestureAvailable)
         {
             GestureSample sample = TouchPanel.ReadGesture();
 
-            if(_switchButton.HandleInput(sample))
+            if (_switchButton.HandleInput(sample))
             {
                 return;
             }
 
-            if(sample.GestureType == GestureType.Tap)
+            if (sample.GestureType == GestureType.Tap)
             {
-                string location = await KeyboardInput.Show("Select Location", "Type in a location to focus on");
-                LocationResultModel result = BingMapsSampleGame.BingApiService.GetLocationModelAsync(location);
-                if(IsLocationResultValid(result))
+                Thread inputThread = new Thread( async () =>
                 {
-                    double longitude = result.ResourceSets[0].Resources[0].Point.Coordinates[0];
-                    double lattitude = result.ResourceSets[0].Resources[0].Point.Coordinates[1];
+                    Thread.CurrentThread.IsBackground = true;
+                    string location = await KeyboardInput.Show("Enter A Location", "Type in a location to focus on");
+                    HandleSoftKeyboardInput(location);
 
-                    GeoCoordinate coordinte = new GeoCoordinate(longitude, lattitude);
-                    _bingMapsViewer.CenterOnLocation(coordinte);
-                }
+                });
+
+                inputThread.Start();
+
+                //string location = await KeyboardInput.Show("Enter a location", "Type in a location to focus on");
+                ////string location = await KeyboardInput.Show("Select Location", "Type in a location to focus on");
+                //LocationResultModel result = BingMapsSampleGame.BingApiService.GetLocationModelAsync(location);
+                //if(IsLocationResultValid(result))
+                //{
+                //    double longitude = result.ResourceSets[0].Resources[0].Point.Coordinates[0];
+                //    double lattitude = result.ResourceSets[0].Resources[0].Point.Coordinates[1];
+
+                //    GeoCoordinate coordinte = new GeoCoordinate(longitude, lattitude);
+                //    _bingMapsViewer.CenterOnLocation(coordinte);
+                //}
             }
-            else if(sample.GestureType  == GestureType.FreeDrag)
+            else if (sample.GestureType == GestureType.FreeDrag)
             {
                 _bingMapsViewer.MoveByOffset(sample.Delta);
             }
         }
     }
 
+    private void HandleSoftKeyboardInput(string value)
+    {
+        if (string.IsNullOrEmpty(value)) { return; }
+        LocationResultModel result = BingMapsSampleGame.BingApiService.GetLocationModelAsync(value);
+        if (IsLocationResultValid(result))
+        {
+            double longitude = result.ResourceSets[0].Resources[0].Point.Coordinates[0];
+            double lattitude = result.ResourceSets[0].Resources[0].Point.Coordinates[1];
+
+            GeoCoordinate coordinte = new GeoCoordinate(longitude, lattitude);
+            _bingMapsViewer.CenterOnLocation(coordinte);
+        }
+    }
+
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Gray);
-        
+
         _spriteBatch.Begin();
-        _bingMapsViewer.Draw(_spriteBatch);
+        if (_viewerInitialize)
+        {
+            _bingMapsViewer.Draw(_spriteBatch);
+        }
         _switchButton.Draw(_spriteBatch);
         _spriteBatch.End();
 
@@ -175,9 +204,9 @@ public class BingMapsSampleGame : Game
 
     #region Non-Public Methods
 
-    private bool IsLocationResultValid(LocationResultModel result) 
+    private bool IsLocationResultValid(LocationResultModel result)
     {
-        if(result == null)
+        if (result == null)
         {
             AlertDialog.Builder alert = new AlertDialog.Builder(Activity.ApplicationContext);
             alert.SetTitle("No Results");
@@ -187,7 +216,7 @@ public class BingMapsSampleGame : Game
             return false;
         }
 
-        if(result.ResourceSets.Count == 0 || result.ResourceSets[0].Resources.Count == 0)
+        if (result.ResourceSets.Count == 0 || result.ResourceSets[0].Resources.Count == 0)
         {
             AlertDialog.Builder alert = new AlertDialog.Builder(Activity.ApplicationContext);
             alert.SetTitle("Invalid Location");
@@ -213,7 +242,7 @@ public class BingMapsSampleGame : Game
 
     protected override void OnExiting(object sender, EventArgs args)
     {
-        if(_bingMapsViewer != null)
+        if (_bingMapsViewer != null)
         {
             _bingMapsViewer.ActiveTiles.Dispose();
         }

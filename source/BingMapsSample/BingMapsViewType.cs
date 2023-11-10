@@ -12,4 +12,13 @@
 
 namespace BingMapsSample;
 
-public enum BingMapsViewType { Aerial, Road }
+public enum BingMapsViewType 
+{ 
+    Aerial,
+    AerialWithLabels,
+    AerialWithLabelsOnDemand,
+    Streetside,
+    BirdsEye,
+    BirdsEyeWithLabels,
+    Road 
+}
